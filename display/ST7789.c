@@ -1,7 +1,22 @@
 /**
- * @file ST7789.c
- *
- */
+  * @file ST7789.c
+  *
+  * Copyright 2019 OPEN-EYES S.r.l.
+  *
+  * This program is free software: you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by
+  * the Free Software Foundation, either version 3 of the License, or
+  * (at your option) any later version.
+  *
+  * This program is distributed in the hope that it will be useful,
+  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  * GNU General Public License for more details.
+  *
+  * You should have received a copy of the GNU General Public License
+  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  **/
+
 
 /*********************
  *      INCLUDES
@@ -288,10 +303,17 @@ static void ST7789_run_cfg_script(void)
 	} while (!end_script);
 }
 
-// 0xe007 = GREEN 0x1f00=blue 0x00F8=red
-#define SCREEN_COLOR	0x1f00
+/*
+ * 0xe007 = GREEN
+ * 0x1f00 = BLUE
+ * 0x00F8 = RED
+ * 0xFFFF = WHITE
+ * 0x0000 = BLACK
+ */
 
-void ST7789_blue_scree(void)
+#define SCREEN_COLOR	0x0000
+
+static void ST7789_black_screen(void)
 {
 	int i,j;
 	uint16_t	*dst;
@@ -318,7 +340,7 @@ int st7789_init(void)
 
 	ST7789_run_cfg_script();
 
-	ST7789_blue_scree();
+	ST7789_black_screen();
 
 	return 0;
 }
@@ -355,16 +377,15 @@ void st7789_flush(int32_t x1, int32_t y1, int32_t x2, int32_t y2, const lv_color
     st7789_set_addr_win(act_x1,act_x2,act_y1,act_y2);
     /*Set the first row in */
 
-    uint16_t color16;
+    //uint16_t color16;
     uint32_t size = (act_x2 - act_x1 + 1) * (act_y2 - act_y1 + 1);
-    uint32_t i;
+    //uint32_t i;
 
-  	for(i = 0; i < size; i++,color_p++) {
-		color16=color_p->full;
-		//lcd_fb[i]=(color16>>8)&0x00FF;
-		//lcd_fb[i]=lcd_fb[i] | ((color16<<8)&0xFF00);
-		lcd_fb[i]=color16;
-	}
+#if LV_COLOR_DEPTH == 16 && LV_COLOR_16_SWAP == 1
+ 	memcpy((uint8_t *)lcd_fb,(uint8_t *)color_p,size*sizeof(lv_color_t));
+#else
+#error "LV_COLOR_DEPTH not supported"
+#endif
 
     st7789_command( ST7735_RAMWR );
 
@@ -467,7 +488,6 @@ void st7789_map(int32_t x1, int32_t y1, int32_t x2, int32_t y2, lv_color_t * col
  */
 static void st7789_sync(int32_t x1, int32_t y1, int32_t x2, int32_t y2)
 {
-	printf("F.");
 	st7789_command( ST7735_RAMWR );
 
 	st7789_databuf( ST7789_FB_SIZE*2, (uint8_t *)lcd_fb );
